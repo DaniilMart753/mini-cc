@@ -1,0 +1,9 @@
+fn main() {
+    int x = 10;
+    if (x > 5) {
+        return;
+    }
+    while (x > 0) {
+        x -= 1;
+    }
+}

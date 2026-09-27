@@ -1,0 +1,7 @@
+fn main() {
+    int x = 5;
+    float y = x;
+    int z = 3 + 4;
+    float w = 1.5 + 2;
+    bool b = x > 0;
+}
