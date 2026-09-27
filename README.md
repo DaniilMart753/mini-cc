@@ -6,8 +6,8 @@
 ## Команда
 
 - Студент: Даниил Мартынов
-- Группа: (укажи свою группу)
-- Курс: (укажи курс)
+- Группа: (впиши свою группу)
+- Курс: (впиши свой курс)
 
 ## Требования
 
@@ -26,30 +26,39 @@ cd mini-cc
 
 ## Быстрый старт
 
-Запустить лексер на примере:
+### Лексический анализ
 
 ```
 py cli.py scan --input examples/hello.src
 ```
 
+### Синтаксический анализ
+
+```
+py cli.py tree --input examples/control.src
+```
+
 Вывод:
 
 ```
-1:1 KW_FN "fn"
-1:4 IDENT "main"
-1:8 LPAREN "("
-1:9 RPAREN ")"
-1:10 LBRACE "{"
-2:5 KW_INT "int"
-2:9 IDENT "counter"
-2:17 ASSIGN "="
-2:19 INT_LIT "42" 42
-2:21 SEMI ";"
-3:5 KW_RETURN "return"
-3:12 INT_LIT "0" 0
-3:13 SEMI ";"
-4:1 RBRACE "}"
-5:1 END_OF_FILE ""
+Program
+  FuncDecl name=main () -> void
+    Block
+      VarDecl type=int name=x
+        IntLit 10
+      If
+        cond:
+          BinOp >
+            Ident x
+            IntLit 5
+        then:
+          Block
+            Return
+              Ident x
+        else:
+          Block
+            Return
+              IntLit 0
 ```
 
 ## Команды CLI
@@ -57,14 +66,14 @@ py cli.py scan --input examples/hello.src
 | Команда | Описание |
 |---------|----------|
 | `scan` | лексический анализ |
-| `tree` | синтаксический анализ (Sprint 2) |
+| `tree` | синтаксический анализ |
 | `check` | семантический анализ (Sprint 3) |
 | `ir` | генерация IR (Sprint 4) |
 | `codegen` | генерация x86-64 (Sprint 5) |
 
 ## Тесты
 
-Запустить все тесты лексера:
+Запустить все тесты:
 
 ```
 py tests/test_runner/run_tests.py
@@ -73,23 +82,34 @@ py tests/test_runner/run_tests.py
 Ожидаемый вывод:
 
 ```
-OK   valid/test_comments.src
-OK   valid/test_identifiers.src
-OK   valid/test_keywords.src
-OK   valid/test_numbers.src
-OK   valid/test_operators.src
-OK   valid/test_strings.src
-OK   invalid/test_invalid_char.src
-OK   invalid/test_unterminated_comment.src
-OK   invalid/test_unterminated_string.src
+OK   lexer/invalid/test_invalid_char.src
+OK   lexer/invalid/test_unterminated_comment.src
+OK   lexer/invalid/test_unterminated_string.src
+OK   lexer/valid/test_comments.src
+OK   lexer/valid/test_identifiers.src
+OK   lexer/valid/test_keywords.src
+OK   lexer/valid/test_numbers.src
+OK   lexer/valid/test_operators.src
+OK   lexer/valid/test_strings.src
+OK   parser/invalid/test_bad_expr.src
+OK   parser/invalid/test_missing_rparen.src
+OK   parser/invalid/test_missing_semi.src
+OK   parser/valid/test_call.src
+OK   parser/valid/test_expr.src
+OK   parser/valid/test_for.src
+OK   parser/valid/test_func.src
+OK   parser/valid/test_if.src
+OK   parser/valid/test_struct.src
+OK   parser/valid/test_var.src
+OK   parser/valid/test_while.src
 
-passed: 9/9
+passed: 20/20
 ```
 
 ## Статус спринтов
 
 - [x] Sprint 1 — Lexer / Scanner
-- [ ] Sprint 2 — Parser / AST
+- [x] Sprint 2 — Parser / AST
 - [ ] Sprint 3 — Semantic Analysis
 - [ ] Sprint 4 — Intermediate Representation
 - [ ] Sprint 5 — x86-64 Code Generation
@@ -101,21 +121,29 @@ passed: 9/9
 ```
 mini-cc/
 ├── src/
-│   └── lexer/
-│       ├── tok.py          # типы токенов и класс Token
-│       ├── scanner.py      # сам сканер
-│       └── errors.py       # ScanError
+│   ├── lexer/
+│   │   ├── tok.py          # типы токенов и класс Token
+│   │   ├── scanner.py      # сам сканер
+│   │   └── errors.py       # ScanError
+│   └── parser/
+│       ├── ast_nodes.py    # классы узлов AST
+│       ├── parser.py       # рекурсивный спуск
+│       └── errors.py       # ParseError
 ├── tests/
 │   ├── lexer/
-│   │   ├── valid/          # корректные примеры
-│   │   └── invalid/        # примеры с ошибками
+│   │   ├── valid/
+│   │   └── invalid/
+│   ├── parser/
+│   │   ├── valid/
+│   │   └── invalid/
 │   └── test_runner/
-│       └── run_tests.py    # раннер тестов
+│       └── run_tests.py
 ├── examples/
-│   └── hello.src
+│   ├── hello.src
+│   └── control.src
 ├── docs/
-│   └── language_spec.md    # спецификация языка
-├── cli.py                  # точка входа
+│   └── language_spec.md
+├── cli.py
 └── setup.py
 ```
 
