@@ -9,11 +9,11 @@ import argparse
 from src.lexer import Scanner, ScanError, TokKind
 from src.parser import Parser, ParseError
 from src.parser import ast_nodes
+from src.semantic import SemanticAnalyzer, SemanticError
 
 
 def cmd_scan(args):
     """Команда scan: прогнать лексер и напечатать токены."""
-    # читаем файл
     try:
         with open(args.input, "r", encoding="utf-8") as f:
             source = f.read()
@@ -24,14 +24,11 @@ def cmd_scan(args):
     scanner = Scanner(source)
     output_lines = []
 
-    # собираем токены, пока не EOF
     while True:
         try:
             tok = scanner.next_token()
         except ScanError as e:
-            # по ТЗ: сообщаем об ошибке, но продолжаем
             output_lines.append(f"ERROR {e.line}:{e.col} {e.message}")
-            # пропускаем плохой символ, чтобы не зациклиться
             if scanner.is_at_end():
                 break
             scanner._advance()
@@ -43,7 +40,6 @@ def cmd_scan(args):
 
     text = "\n".join(output_lines)
 
-    # либо печатаем, либо пишем в файл
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(text + "\n")
@@ -51,6 +47,7 @@ def cmd_scan(args):
         print(text)
 
     return 0
+
 
 def cmd_tree(args):
     """Команда tree: разобрать файл и напечатать AST."""
@@ -80,6 +77,35 @@ def cmd_tree(args):
     else:
         print(text)
 
+    return 0
+
+
+def cmd_check(args):
+    """Команда check: семантический анализ."""
+    try:
+        with open(args.input, "r", encoding="utf-8") as f:
+            source = f.read()
+    except FileNotFoundError:
+        print(f"error: file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    scanner = Scanner(source)
+    parser = Parser(scanner)
+
+    try:
+        program = parser.parse()
+    except (ScanError, ParseError) as e:
+        print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
+        return 1
+
+    analyzer = SemanticAnalyzer(program)
+    try:
+        analyzer.analyze()
+    except SemanticError as e:
+        print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
+        return 1
+
+    print("OK")
     return 0
 
 
@@ -194,6 +220,7 @@ def _print_node(node, indent, lines):
     else:
         lines.append(f"{prefix}{name}")
 
+
 def main():
     parser = argparse.ArgumentParser(
         prog="mini-cc",
@@ -207,10 +234,16 @@ def main():
     p_scan.add_argument("--output", help="output file (default: stdout)")
     p_scan.set_defaults(func=cmd_scan)
 
+    # tree
     p_tree = sub.add_parser("tree", help="parse and print AST")
     p_tree.add_argument("--input", required=True, help="source file")
     p_tree.add_argument("--output", help="output file (default: stdout)")
     p_tree.set_defaults(func=cmd_tree)
+
+    # check
+    p_check = sub.add_parser("check", help="run semantic analysis")
+    p_check.add_argument("--input", required=True, help="source file")
+    p_check.set_defaults(func=cmd_check)
 
     args = parser.parse_args()
     return args.func(args)
