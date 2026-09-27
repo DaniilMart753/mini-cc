@@ -1,0 +1,5 @@
+1:1 STRING_LIT ""hello"" hello
+1:9 STRING_LIT ""world"" world
+1:17 STRING_LIT ""with "escape""" with "escape"
+1:35 STRING_LIT ""tab	here"" tab	here
+1:46 EOF ""
