@@ -61,7 +61,7 @@ float = digit , { digit } , "." , digit , { digit } ;
 
 Двойные кавычки. Внутри — любые символы, кроме `"` и `\n`.
 
-Escape-последовательности (опционально для Sprint 1):
+Escape-последовательности:
 - `\n` — перевод строки
 - `\t` — табуляция
 - `\\` — обратный слэш
@@ -77,7 +77,7 @@ escape = "\\" , ( "n" | "t" | "\\" | '"' ) ;
 
 ### 4.4 Булевы значения
 
-`true` или `false`. В коде они представлены как ключевые слова `KW_TRUE` и `KW_FALSE`.
+`true` или `false`.
 
 ## 5. Операторы
 
@@ -139,12 +139,9 @@ escape = "\\" , ( "n" | "t" | "\\" | '"' ) ;
 
 ### Пробельные символы
 
-- пробел (` `)
-- табуляция (`\t`)
-- перевод строки (`\n`)
-- возврат каретки (`\r`)
+- пробел (` `), табуляция (`\t`), перевод строки (`\n`), возврат каретки (`\r`)
 
-Все пробельные символы **игнорируются** сканером (кроме случая, когда они внутри строк).
+Все пробельные символы игнорируются (кроме строк).
 
 ### Комментарии
 
@@ -162,11 +159,9 @@ x = 1; // это комментарий
    комментарий */
 ```
 
-Вложенность многострочных комментариев **не поддерживается**.
+Вложенность не поддерживается.
 
 ## 8. Формат вывода токенов
-
-Сканер выдаёт токены в формате:
 
 ```
 LINE:COLUMN TOKEN_TYPE "LEXEME" [LITERAL_VALUE]
@@ -177,25 +172,13 @@ LINE:COLUMN TOKEN_TYPE "LEXEME" [LITERAL_VALUE]
 ```
 1:1 KW_FN "fn"
 1:4 IDENT "main"
-1:8 LPAREN "("
-1:9 RPAREN ")"
-1:10 LBRACE "{"
-2:5 KW_INT "int"
-2:9 IDENT "counter"
-2:17 ASSIGN "="
-2:19 INT_LIT "42" 42
-2:21 SEMI ";"
-3:1 RBRACE "}"
-4:1 END_OF_FILE ""
 ```
 
 - `LINE` и `COLUMN` начинаются с **1**
-- `LITERAL_VALUE` присутствует только для литералов (`INT_LIT`, `FLOAT_LIT`, `STRING_LIT`)
+- `LITERAL_VALUE` только для литералов
 - `LEXEME` для `END_OF_FILE` пустой
 
 ## 9. Ошибки
-
-Сканер сообщает об ошибках в формате:
 
 ```
 ERROR LINE:COLUMN message
@@ -203,10 +186,98 @@ ERROR LINE:COLUMN message
 
 Виды ошибок:
 
-- `unexpected character 'X'` — символ, которого нет в языке
+- `unexpected character 'X'` — неизвестный символ
 - `unterminated string` — строка не закрыта
 - `unterminated comment` — комментарий не закрыт
-- `identifier too long (max 255)` — идентификатор длиннее 255 символов
-- `integer literal out of range` — целое число вне диапазона int32
+- `identifier too long (max 255)`
+- `integer literal out of range`
 
-После ошибки сканер **продолжает** работу, пропуская проблемный символ, где это возможно.
+## 10. Грамматика
+
+Полная грамматика языка в EBNF.
+
+### Верхний уровень
+
+```
+program     = { top_level } ;
+top_level   = func_decl | struct_decl ;
+
+func_decl   = "fn" , identifier , "(" , [ param_list ] , ")" ,
+              [ "->" , type ] , block ;
+
+param_list  = param , { "," , param } ;
+param       = type , identifier ;
+
+struct_decl = "struct" , identifier , "{" ,
+              { type , identifier , ";" } , "}" ;
+
+type        = "int" | "float" | "bool" | "void" | "struct" | identifier ;
+```
+
+### Операторы
+
+```
+block       = "{" , { statement } , "}" ;
+
+statement   = block
+            | var_decl
+            | if_stmt
+            | while_stmt
+            | for_stmt
+            | return_stmt
+            | expr_stmt ;
+
+var_decl    = type , identifier , [ "=" , expr ] , ";" ;
+
+if_stmt     = "if" , "(" , expr , ")" , block_or_stmt ,
+              [ "else" , block_or_stmt ] ;
+
+while_stmt  = "while" , "(" , expr , ")" , block_or_stmt ;
+
+for_stmt    = "for" , "(" , [ for_init ] , ";" , [ expr ] , ";" , [ expr ] , ")" ,
+              block_or_stmt ;
+
+for_init    = var_decl_no_semi | expr ;
+
+return_stmt = "return" , [ expr ] , ";" ;
+
+expr_stmt   = expr , ";" ;
+
+block_or_stmt = block | statement ;
+```
+
+### Выражения
+
+```
+expr        = assignment ;
+assignment  = or_expr , [ assign_op , assignment ] ;
+assign_op   = "=" | "+=" | "-=" | "*=" | "/=" ;
+
+or_expr     = and_expr , { "||" , and_expr } ;
+and_expr    = eq_expr , { "&&" , eq_expr } ;
+eq_expr     = cmp_expr , { ( "==" | "!=" ) , cmp_expr } ;
+cmp_expr    = add_expr , { ( "<" | "<=" | ">" | ">=" ) , add_expr } ;
+add_expr    = mul_expr , { ( "+" | "-" ) , mul_expr } ;
+mul_expr    = unary , { ( "*" | "/" | "%" ) , unary } ;
+unary       = ( "-" | "!" ) , unary | primary ;
+primary     = int_lit | float_lit | string_lit | bool_lit
+            | identifier , [ "(" , [ arg_list ] , ")" ]
+            | "(" , expr , ")" ;
+
+arg_list    = expr , { "," , expr } ;
+```
+
+**Приоритет операторов** (от слабого к сильному):
+1. `=` `+=` `-=` `*=` `/=` (правоассоциативные)
+2. `||`
+3. `&&`
+4. `==` `!=`
+5. `<` `<=` `>` `>=`
+6. `+` `-`
+7. `*` `/` `%`
+8. `-` `!` (унарные)
+9. вызов, скобки
+
+**Ассоциативность:**
+- бинарные арифметические и логические — **левоассоциативные**
+- присваивание — **правоассоциативное**
