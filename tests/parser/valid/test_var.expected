@@ -1,0 +1,9 @@
+Program
+  FuncDecl name=main () -> void
+    Block
+      VarDecl type=int name=x
+        IntLit 5
+      VarDecl type=float name=y
+        FloatLit 3.14
+      VarDecl type=bool name=flag
+        BoolLit True

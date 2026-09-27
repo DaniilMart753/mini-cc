@@ -1,0 +1,4 @@
+Program
+  StructDecl name=Point
+    Field int x
+    Field int y

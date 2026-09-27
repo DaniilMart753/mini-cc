@@ -1,0 +1,7 @@
+Program
+  FuncDecl name=add (int a, int b) -> int
+    Block
+      Return
+        BinOp +
+          Ident a
+          Ident b

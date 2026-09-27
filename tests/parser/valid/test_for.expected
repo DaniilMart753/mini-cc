@@ -1,0 +1,21 @@
+Program
+  FuncDecl name=main () -> void
+    Block
+      For
+        init:
+          VarDecl type=int name=i
+            IntLit 0
+        cond:
+          BinOp <
+            Ident i
+            IntLit 10
+        step:
+          Assign +=
+            Ident i
+            IntLit 1
+        body:
+          Block
+            ExprStmt
+              Call
+                Ident print
+                Ident i

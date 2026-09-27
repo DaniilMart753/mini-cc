@@ -1,0 +1,19 @@
+Program
+  FuncDecl name=main () -> void
+    Block
+      VarDecl type=int name=x
+        BinOp -
+          BinOp +
+            IntLit 2
+            BinOp *
+              IntLit 3
+              IntLit 4
+          IntLit 5
+      VarDecl type=bool name=b
+        BinOp &&
+          BinOp >
+            Ident x
+            IntLit 0
+          BinOp !=
+            Ident x
+            IntLit 100

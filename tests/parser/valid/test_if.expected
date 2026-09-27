@@ -1,0 +1,18 @@
+Program
+  FuncDecl name=main () -> void
+    Block
+      VarDecl type=int name=x
+        IntLit 10
+      If
+        cond:
+          BinOp >
+            Ident x
+            IntLit 5
+        then:
+          Block
+            Return
+              IntLit 1
+        else:
+          Block
+            Return
+              IntLit 0
