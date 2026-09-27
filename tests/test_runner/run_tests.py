@@ -1,5 +1,5 @@
 """
-Простой раннер тестов для лексера.
+Простой раннер тестов для лексера и парсера.
 Запуск: py tests/test_runner/run_tests.py
 """
 
@@ -9,20 +9,28 @@ import subprocess
 
 # корень проекта — на два уровня выше этого файла
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-TESTS_DIR = os.path.join(ROOT, "tests", "lexer")
+TESTS_DIR = os.path.join(ROOT, "tests")
 CLI = os.path.join(ROOT, "cli.py")
 
 
 def run_one(src_path, expected_path):
-    """Запустить лексер на одном файле и сравнить с ожиданием."""
-    # запускаем CLI как подпроцесс
+    """Запустить CLI на одном файле и сравнить с ожиданием."""
+    # определяем команду по пути
+    if "lexer" in src_path:
+        cmd = "scan"
+    elif "parser" in src_path:
+        cmd = "tree"
+    else:
+        raise ValueError(f"unknown test stage: {src_path}")
+
     result = subprocess.run(
-        [sys.executable, CLI, "scan", "--input", src_path],
+        [sys.executable, CLI, cmd, "--input", src_path],
         capture_output=True,
         text=True,
         encoding="utf-8",
     )
-    actual = result.stdout.strip()
+    # для invalid тестов ошибка идёт в stderr, поэтому склеиваем
+    actual = (result.stdout + result.stderr).strip()
 
     with open(expected_path, "r", encoding="utf-8") as f:
         expected = f.read().strip()
@@ -35,28 +43,35 @@ def main():
     passed = 0
     failed = []
 
-    # проходим по valid и invalid
-    for sub in ["valid", "invalid"]:
-        folder = os.path.join(TESTS_DIR, sub)
-        if not os.path.isdir(folder):
+    # проходим по всем подпапкам в tests/ (lexer, parser, ...)
+    for stage in sorted(os.listdir(TESTS_DIR)):
+        stage_dir = os.path.join(TESTS_DIR, stage)
+        if not os.path.isdir(stage_dir):
             continue
-        for name in sorted(os.listdir(folder)):
-            if not name.endswith(".src"):
-                continue
-            src = os.path.join(folder, name)
-            exp = src[:-4] + ".expected"
-            if not os.path.exists(exp):
-                print(f"SKIP {sub}/{name} (no .expected)")
-                continue
+        if stage in ("test_runner", "__pycache__"):
+            continue
 
-            total += 1
-            ok, actual, expected = run_one(src, exp)
-            if ok:
-                passed += 1
-                print(f"OK   {sub}/{name}")
-            else:
-                failed.append((sub, name, actual, expected))
-                print(f"FAIL {sub}/{name}")
+        for sub in ["valid", "invalid"]:
+            folder = os.path.join(stage_dir, sub)
+            if not os.path.isdir(folder):
+                continue
+            for name in sorted(os.listdir(folder)):
+                if not name.endswith(".src"):
+                    continue
+                src = os.path.join(folder, name)
+                exp = src[:-4] + ".expected"
+                if not os.path.exists(exp):
+                    print(f"SKIP {stage}/{sub}/{name} (no .expected)")
+                    continue
+
+                total += 1
+                ok, actual, expected = run_one(src, exp)
+                if ok:
+                    passed += 1
+                    print(f"OK   {stage}/{sub}/{name}")
+                else:
+                    failed.append((f"{stage}/{sub}", name, actual, expected))
+                    print(f"FAIL {stage}/{sub}/{name}")
 
     print()
     print(f"passed: {passed}/{total}")
@@ -64,8 +79,8 @@ def main():
     if failed:
         print()
         print("=" * 60)
-        for sub, name, actual, expected in failed:
-            print(f"--- {sub}/{name} ---")
+        for stage_sub, name, actual, expected in failed:
+            print(f"--- {stage_sub}/{name} ---")
             print("expected:")
             print(expected)
             print("actual:")
