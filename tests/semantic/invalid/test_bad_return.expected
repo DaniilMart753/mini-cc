@@ -1,0 +1,1 @@
+ERROR 2:5 cannot return 'string' from function returning 'int'

@@ -20,6 +20,8 @@ def run_one(src_path, expected_path):
         cmd = "scan"
     elif "parser" in src_path:
         cmd = "tree"
+    elif "semantic" in src_path:
+        cmd = "check"
     else:
         raise ValueError(f"unknown test stage: {src_path}")
 
