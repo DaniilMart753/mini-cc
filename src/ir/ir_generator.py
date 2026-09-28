@@ -145,6 +145,7 @@ class IRGenerator:
         else:
             raise ValueError(f"unknown statement: {type(stmt).__name__}")
 
+
     def _gen_if(self, stmt):
         """
         if (cond) { then } else { else }
@@ -167,15 +168,14 @@ class IRGenerator:
 
         # then-ветка
         then_block_name = f"{self.current_func}_{else_label}_then"
-        then_block = self._start_block(then_block_name)
-        self.cfg.connect(self.cfg.blocks[list(self.cfg.blocks)[-2]].name, then_block_name)
+        self._start_block(then_block_name)
         self._gen_stmt(stmt.then_block)
         self._emit(IRJump(end_label))
 
         # else-ветка
         else_block_name = f"{self.current_func}_{else_label}_else"
-        else_block = self._start_block(else_block_name)
-        self.cfg.connect(then_block_name, else_block_name)  # заглушка, потом поправим
+        self._start_block(else_block_name)
+        self._emit(IRLabel(else_label))
         if stmt.else_block is not None:
             self._gen_stmt(stmt.else_block)
 
@@ -183,6 +183,7 @@ class IRGenerator:
         end_block_name = f"{self.current_func}_{end_label}"
         self._start_block(end_block_name)
         self._emit(IRLabel(end_label))
+    
 
     def _gen_while(self, stmt):
         """
