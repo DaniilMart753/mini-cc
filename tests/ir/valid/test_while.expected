@@ -1,0 +1,9 @@
+func main:
+x = 10
+L1:
+t1 = x > 0
+if !t1 goto L2
+x = 1
+goto L1
+L2:
+return

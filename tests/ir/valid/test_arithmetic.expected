@@ -1,0 +1,6 @@
+func main:
+t1 = 3 * 4
+t2 = 2 + t1
+x = t2
+return x
+return

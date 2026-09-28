@@ -1,0 +1,4 @@
+func foo:
+param a
+return a
+return

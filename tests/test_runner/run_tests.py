@@ -22,6 +22,8 @@ def run_one(src_path, expected_path):
         cmd = "tree"
     elif "semantic" in src_path:
         cmd = "check"
+    elif "ir" in src_path:
+        cmd = "ir"
     else:
         raise ValueError(f"unknown test stage: {src_path}")
 
