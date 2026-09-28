@@ -32,6 +32,26 @@ cd mini-cc
 py cli.py scan --input examples/hello.src
 ```
 
+Вывод:
+
+```
+1:1 KW_FN "fn"
+1:4 IDENT "main"
+1:8 LPAREN "("
+1:9 RPAREN ")"
+1:10 LBRACE "{"
+2:5 KW_INT "int"
+2:9 IDENT "counter"
+2:17 ASSIGN "="
+2:19 INT_LIT "42" 42
+2:21 SEMI ";"
+3:5 KW_RETURN "return"
+3:12 INT_LIT "0" 0
+3:13 SEMI ";"
+4:1 RBRACE "}"
+5:1 END_OF_FILE ""
+```
+
 ### Синтаксический анализ
 
 ```
@@ -61,14 +81,44 @@ Program
               IntLit 0
 ```
 
+### Семантический анализ
+
+```
+py cli.py check --input examples/valid.src
+```
+
+Вывод:
+
+```
+OK
+```
+
+Если есть ошибка — `ERROR line:col message`.
+
+### Генерация IR
+
+```
+py cli.py ir --input examples/ir_simple.src
+```
+
+Вывод:
+
+```
+func main:
+t1 = 2 + 3
+x = t1
+return x
+return
+```
+
 ## Команды CLI
 
 | Команда | Описание |
 |---------|----------|
 | `scan` | лексический анализ |
 | `tree` | синтаксический анализ |
-| `check` | семантический анализ (Sprint 3) |
-| `ir` | генерация IR (Sprint 4) |
+| `check` | семантический анализ |
+| `ir` | генерация IR |
 | `codegen` | генерация x86-64 (Sprint 5) |
 
 ## Тесты
@@ -102,16 +152,34 @@ OK   parser/valid/test_if.src
 OK   parser/valid/test_struct.src
 OK   parser/valid/test_var.src
 OK   parser/valid/test_while.src
+OK   semantic/invalid/test_bad_args.src
+OK   semantic/invalid/test_bad_condition.src
+OK   semantic/invalid/test_bad_return.src
+OK   semantic/invalid/test_redeclare.src
+OK   semantic/invalid/test_type_mismatch.src
+OK   semantic/invalid/test_undefined.src
+OK   semantic/valid/test_basic.src
+OK   semantic/valid/test_control.src
+OK   semantic/valid/test_func_call.src
+OK   semantic/valid/test_scopes.src
+OK   semantic/valid/test_types.src
+OK   ir/valid/test_arithmetic.src
+OK   ir/valid/test_call.src
+OK   ir/valid/test_func.src
+OK   ir/valid/test_if.src
+OK   ir/valid/test_if_else.src
+OK   ir/valid/test_simple.src
+OK   ir/valid/test_while.src
 
-passed: 20/20
+passed: 38/38
 ```
 
 ## Статус спринтов
 
 - [x] Sprint 1 — Lexer / Scanner
 - [x] Sprint 2 — Parser / AST
-- [ ] Sprint 3 — Semantic Analysis
-- [ ] Sprint 4 — Intermediate Representation
+- [x] Sprint 3 — Semantic Analysis
+- [x] Sprint 4 — Intermediate Representation
 - [ ] Sprint 5 — x86-64 Code Generation
 - [ ] Sprint 6 — Optimizer
 - [ ] Sprint 7 — Advanced Features
@@ -125,10 +193,19 @@ mini-cc/
 │   │   ├── tok.py          # типы токенов и класс Token
 │   │   ├── scanner.py      # сам сканер
 │   │   └── errors.py       # ScanError
-│   └── parser/
-│       ├── ast_nodes.py    # классы узлов AST
-│       ├── parser.py       # рекурсивный спуск
-│       └── errors.py       # ParseError
+│   ├── parser/
+│   │   ├── ast_nodes.py    # классы узлов AST
+│   │   ├── parser.py       # рекурсивный спуск
+│   │   └── errors.py       # ParseError
+│   ├── semantic/
+│   │   ├── symbol_table.py # таблица символов и scope
+│   │   ├── analyzer.py     # семантический анализ
+│   │   └── errors.py       # SemanticError
+│   └── ir/
+│       ├── ir_instructions.py  # классы инструкций IR
+│       ├── basic_block.py      # базовый блок
+│       ├── control_flow.py     # CFG
+│       └── ir_generator.py     # генератор IR из AST
 ├── tests/
 │   ├── lexer/
 │   │   ├── valid/
@@ -136,11 +213,20 @@ mini-cc/
 │   ├── parser/
 │   │   ├── valid/
 │   │   └── invalid/
+│   ├── semantic/
+│   │   ├── valid/
+│   │   └── invalid/
+│   ├── ir/
+│   │   └── valid/
 │   └── test_runner/
 │       └── run_tests.py
 ├── examples/
 │   ├── hello.src
-│   └── control.src
+│   ├── control.src
+│   ├── valid.src
+│   ├── invalid.src
+│   ├── ir_simple.src
+│   └── ir_if.src
 ├── docs/
 │   └── language_spec.md
 ├── cli.py
