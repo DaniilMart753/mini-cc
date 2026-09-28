@@ -22,6 +22,8 @@ def run_one(src_path, expected_path):
         cmd = "tree"
     elif "semantic" in src_path:
         cmd = "check"
+    elif "codegen" in src_path:
+        cmd = "codegen"
     elif "ir" in src_path:
         cmd = "ir"
     else:
