@@ -10,6 +10,8 @@ from src.lexer import Scanner, ScanError, TokKind
 from src.parser import Parser, ParseError
 from src.parser import ast_nodes
 from src.semantic import SemanticAnalyzer, SemanticError
+from src.ir import IRGenerator
+from src.codegen import X86Generator
 
 
 def cmd_scan(args):
@@ -106,6 +108,97 @@ def cmd_check(args):
         return 1
 
     print("OK")
+    return 0
+
+
+def cmd_ir(args):
+    """Команда ir: сгенерировать IR и напечатать."""
+    try:
+        with open(args.input, "r", encoding="utf-8") as f:
+            source = f.read()
+    except FileNotFoundError:
+        print(f"error: file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    scanner = Scanner(source)
+    parser = Parser(scanner)
+
+    try:
+        program = parser.parse()
+    except (ScanError, ParseError) as e:
+        print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
+        return 1
+
+    # семантику тоже прогоняем — иначе IR может быть некорректным
+    analyzer = SemanticAnalyzer(program)
+    try:
+        analyzer.analyze()
+    except SemanticError as e:
+        print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
+        return 1
+
+    generator = IRGenerator(program)
+    generator.generate()
+
+    # собираем строки
+    lines = []
+    for instr in generator.instructions:
+        lines.append(instr.to_str())
+    text = "\n".join(lines)
+
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(text + "\n")
+    else:
+        print(text)
+
+    return 0
+
+
+def cmd_codegen(args):
+    """Команда codegen: сгенерировать x86-64 asm."""
+    try:
+        with open(args.input, "r", encoding="utf-8") as f:
+            source = f.read()
+    except FileNotFoundError:
+        print(f"error: file not found: {args.input}", file=sys.stderr)
+        return 1
+
+    scanner = Scanner(source)
+    parser = Parser(scanner)
+
+    try:
+        program = parser.parse()
+    except (ScanError, ParseError) as e:
+        print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
+        return 1
+
+    # семантика
+    analyzer = SemanticAnalyzer(program)
+    try:
+        analyzer.analyze()
+    except SemanticError as e:
+        print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
+        return 1
+
+    # IR
+    ir_gen = IRGenerator(program)
+    ir_gen.generate()
+
+    # asm
+    asm_gen = X86Generator(ir_gen.instructions)
+    try:
+        asm_text = asm_gen.generate()
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(asm_text + "\n")
+    else:
+        print(asm_text)
+
     return 0
 
 
@@ -244,6 +337,18 @@ def main():
     p_check = sub.add_parser("check", help="run semantic analysis")
     p_check.add_argument("--input", required=True, help="source file")
     p_check.set_defaults(func=cmd_check)
+
+    # ir
+    p_ir = sub.add_parser("ir", help="generate intermediate representation")
+    p_ir.add_argument("--input", required=True, help="source file")
+    p_ir.add_argument("--output", help="output file (default: stdout)")
+    p_ir.set_defaults(func=cmd_ir)
+
+        # codegen
+    p_codegen = sub.add_parser("codegen", help="generate x86-64 assembly")
+    p_codegen.add_argument("--input", required=True, help="source file")
+    p_codegen.add_argument("--output", help="output file (default: stdout)")
+    p_codegen.set_defaults(func=cmd_codegen)
 
     args = parser.parse_args()
     return args.func(args)
