@@ -12,6 +12,7 @@ from src.parser import ast_nodes
 from src.semantic import SemanticAnalyzer, SemanticError
 from src.ir import IRGenerator
 from src.codegen import X86Generator
+from src.optimizer import Optimizer
 
 
 def cmd_scan(args):
@@ -129,7 +130,6 @@ def cmd_ir(args):
         print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
         return 1
 
-    # семантику тоже прогоняем — иначе IR может быть некорректным
     analyzer = SemanticAnalyzer(program)
     try:
         analyzer.analyze()
@@ -140,9 +140,15 @@ def cmd_ir(args):
     generator = IRGenerator(program)
     generator.generate()
 
-    # собираем строки
+    instructions = generator.instructions
+
+    # если указан --optimize — применяем оптимизации
+    if getattr(args, "optimize", False):
+        opt = Optimizer(instructions)
+        instructions = opt.optimize()
+
     lines = []
-    for instr in generator.instructions:
+    for instr in instructions:
         lines.append(instr.to_str())
     text = "\n".join(lines)
 
@@ -173,7 +179,6 @@ def cmd_codegen(args):
         print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
         return 1
 
-    # семантика
     analyzer = SemanticAnalyzer(program)
     try:
         analyzer.analyze()
@@ -181,12 +186,17 @@ def cmd_codegen(args):
         print(f"ERROR {e.line}:{e.col} {e.message}", file=sys.stderr)
         return 1
 
-    # IR
     ir_gen = IRGenerator(program)
     ir_gen.generate()
 
-    # asm
-    asm_gen = X86Generator(ir_gen.instructions)
+    instructions = ir_gen.instructions
+
+    # если указан --optimize — оптимизируем IR перед кодогенерацией
+    if getattr(args, "optimize", False):
+        opt = Optimizer(instructions)
+        instructions = opt.optimize()
+
+    asm_gen = X86Generator(instructions)
     try:
         asm_text = asm_gen.generate()
     except ValueError as e:
@@ -342,12 +352,14 @@ def main():
     p_ir = sub.add_parser("ir", help="generate intermediate representation")
     p_ir.add_argument("--input", required=True, help="source file")
     p_ir.add_argument("--output", help="output file (default: stdout)")
+    p_ir.add_argument("--optimize", action="store_true", help="apply optimizations")
     p_ir.set_defaults(func=cmd_ir)
 
-        # codegen
+    # codegen
     p_codegen = sub.add_parser("codegen", help="generate x86-64 assembly")
     p_codegen.add_argument("--input", required=True, help="source file")
     p_codegen.add_argument("--output", help="output file (default: stdout)")
+    p_codegen.add_argument("--optimize", action="store_true", help="apply optimizations")
     p_codegen.set_defaults(func=cmd_codegen)
 
     args = parser.parse_args()
