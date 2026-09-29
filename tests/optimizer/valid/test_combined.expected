@@ -1,0 +1,4 @@
+func main:
+a = 3
+b = 6
+return 6

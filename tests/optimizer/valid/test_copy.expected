@@ -1,0 +1,4 @@
+func main:
+x = 5
+y = 5
+return 5

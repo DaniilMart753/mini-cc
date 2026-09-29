@@ -15,34 +15,41 @@ CLI = os.path.join(ROOT, "cli.py")
 
 def run_one(src_path, expected_path):
     """Запустить CLI на одном файле и сравнить с ожиданием."""
-    # определяем команду по пути
-    if "lexer" in src_path:
+    # определяем команду и дополнительные аргументы по пути
+    if "optimizer" in src_path:
+        cmd = "ir"
+        extra = ["--optimize"]
+    elif "lexer" in src_path:
         cmd = "scan"
+        extra = []
     elif "parser" in src_path:
         cmd = "tree"
+        extra = []
     elif "semantic" in src_path:
         cmd = "check"
+        extra = []
     elif "codegen" in src_path:
         cmd = "codegen"
+        extra = []
     elif "ir" in src_path:
         cmd = "ir"
+        extra = []
     else:
         raise ValueError(f"unknown test stage: {src_path}")
 
     result = subprocess.run(
-        [sys.executable, CLI, cmd, "--input", src_path],
+        [sys.executable, CLI, cmd, "--input", src_path] + extra,
         capture_output=True,
         text=True,
         encoding="utf-8",
     )
-    # для invalid тестов ошибка идёт в stderr, поэтому склеиваем
     actual = (result.stdout + result.stderr).strip()
 
     with open(expected_path, "r", encoding="utf-8") as f:
         expected = f.read().strip()
 
     return actual == expected, actual, expected
-
+    
 
 def main():
     total = 0
